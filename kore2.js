@@ -4,9 +4,11 @@ var express     = require('express')
   , io          = require('socket.io').listen(server)
   , check       = require('validator').check
   , sanitize    = require('validator').sanitize
+  , proxy       = require('./proxy')
+  , net         = require("net")
   , count       = 0
   , users       = []
-  , proxy       = require('./proxy');
+  , sockets     = {};
 
 
 function isset(variable)
@@ -77,14 +79,35 @@ io.sockets.on('connection', function(socket)
             {
                 if(command.length != 3)
                 {
-                    message = "Please use the following command line arguments:"
-                                + " proxy_port service_host "
+                    message = "Please use the following arguments:"
+                                + " service_host port"
                                 + " e.g. www.google.com 9001";
                 }
                 else
                 {
-                    proxy.startProxy(command[1], command[2], io)
+                    // Create a new socket for each host
+                    sockets[command[1]] = new net.Socket();
+                    
+                    proxy.startProxy(sockets[command[1]], command[1], command[2], io)
                     message = "Proxy started..."
+                }
+                
+                io.sockets.emit('chat', {user: 'system', message: message});
+            }
+            else if(command[0] == 'replay')
+            {
+                if(command.length != 3)
+                {
+                    message = "Please use the following arguments:"
+                                + " service_host data"
+                                + " e.g. www.google.com 135701011c";
+                }
+                else
+                {
+                    var packet = command.pop();
+                    console.log(new Buffer(packet, 'hex')); 
+                    sockets[command[1]].write(new Buffer(packet, 'hex'));
+                    message = "Packet sent!";
                 }
                 
                 io.sockets.emit('chat', {user: 'system', message: message});

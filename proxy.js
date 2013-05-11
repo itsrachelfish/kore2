@@ -1,25 +1,7 @@
-//var util = require('util');
 var net = require("net");
 var hexy = require("hexy");
 
-/*process.on("uncaughtException", function(e) {
-console.log(e);
-});
-
-if (process.argv.length != 5) {
-console.log("Require the following command line arguments:" +
-" proxy_port service_host service_port");
-console.log(" e.g. 9001 www.google.com 80");
-process.exit();
-}
-var proxyPort = process.argv[2];
-var serviceHost = process.argv[3];
-var servicePort = process.argv[4];
-*/
-
-var packet = {};
-
-function startProxy(serviceHost, servicePort, io)
+function startProxy(serviceSocket, serviceHost, servicePort, io)
 {
     // We don't need to proxy to other ports...
     var proxyPort = servicePort;
@@ -28,7 +10,6 @@ function startProxy(serviceHost, servicePort, io)
     {
         var connected = false;
         var buffers = new Array();
-        var serviceSocket = new net.Socket();
         serviceSocket.connect(parseInt(servicePort), serviceHost, function()
         {
             connected = true;

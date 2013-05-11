@@ -54,7 +54,6 @@
                 packet.data = packet.data.replace(/[\r\n ]/g, '');
 
                 var header = packet.data.substr(4, 4);
-                var data = packet.data.substr(8);
                                 
                 if(packet.source == 'client')
                 {
@@ -62,7 +61,7 @@
                     $('.count .sent').text(sent.count);
                     
                     if(typeof sent.packets[header] === 'undefined')
-                        sent.packets[header] = {data: data, count: 1};
+                        sent.packets[header] = {data: packet.data, count: 1};
                     else
                         sent.packets[header].count++;
                 }
@@ -72,7 +71,7 @@
                     $('.count .recv').text(recv.count);
                     
                     if(typeof recv.packets[header] === 'undefined')
-                        recv.packets[header] = {data: data, count: 1};
+                        recv.packets[header] = {data: packet.data, count: 1};
                     else
                         recv.packets[header].count++;
                 }
