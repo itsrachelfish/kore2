@@ -8,6 +8,8 @@
 
         <script>
             var socket = io.connect('http://192.168.2.117:1024');
+           var sent = {count: 0, packets: {}};
+           var recv = {count: 0, packets: {}};
            
             socket.on('connected', function(data)
             {
@@ -50,15 +52,30 @@
             socket.on('packet', function(packet)
             {
                 packet.data = packet.data.replace(/[\r\n ]/g, '');
-                
-                console.log(packet.source);
-                
-                if(packet.source == 'server')
-                    console.log(packet.host + ' ' + packet.port);
-                
-                console.log('------------------');
-                console.log(packet.data);
-                console.log('\n');
+
+                var header = packet.data.substr(4, 4);
+                var data = packet.data.substr(8);
+                                
+                if(packet.source == 'client')
+                {
+                    sent.count++;
+                    $('.count .sent').text(sent.count);
+                    
+                    if(typeof sent.packets[header] === 'undefined')
+                        sent.packets[header] = {data: data, count: 1};
+                    else
+                        sent.packets[header].count++;
+                }
+                else if(packet.source == 'server')
+                {
+                    recv.count++;
+                    $('.count .recv').text(recv.count);
+                    
+                    if(typeof recv.packets[header] === 'undefined')
+                        recv.packets[header] = {data: data, count: 1};
+                    else
+                        recv.packets[header].count++;
+                }
             });
             
             $(document).ready(function()
@@ -84,18 +101,98 @@
                 
                 $('.message').click(function()
                 {
-                    socket.emit('chat', {message: $('.input').val()});
+                    var message = $('.input').val();
+                    var command = message.split(' ');
+                    
+                    if(command[0] == 'stats')
+                    {
+                        // Initialize 
+                        sent.sorted = [];
+                        recv.sorted = [];
+                        
+                        // Loop
+                        for(var header in sent.packets)
+                        {
+                            sent.sorted.push([header, sent.packets[header].count]);
+                        }
+                        
+                        for(var header in recv.packets)
+                        {
+                            recv.sorted.push([header, recv.packets[header].count]);
+                        }
+                        
+                        // Sort
+                        sent.sorted = sent.sorted.sort(function(a, b) {return a[1] - b[1]});
+                        recv.sorted = recv.sorted.sort(function(a, b) {return a[1] - b[1]});
+                        
+                        // Clear space
+                        $('.packets .sent').html('');
+                        $('.packets .recv').html('');
+                        
+                        for(var i in sent.sorted)
+                        {
+                            console.log(sent.sorted);
+                            
+                            var header = sent.sorted[i][0];
+                            var data = sent.packets[header];
+                            
+                            console.log(header);
+                            console.log(data);
+                            $('.packets .sent').append("<div class='packet' title='"+data.data+"'>"+ header +" - "+data.count+"</div>");
+                        }
+                        
+                        for(var i in recv.sorted)
+                        {
+                            var header = recv.sorted[i][0];
+                            var data = recv.packets[header];
+                            
+                            console.log(header);
+                            console.log(data);
+
+                            $('.packets .recv').append("<div class='packet' title='"+data.data+"'>"+ header +" - "+data.count+"</div>");
+                        }
+                    }
+
+                    socket.emit('chat', {message: message});
                     $('.input').val('');
+                });
+                
+
+                function hex2a(hex) {
+                    var str = '';
+                    for (var i = 0; i < hex.length; i += 2)
+                        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+                    return str;
+                }
+
+                $('.packets').on('click', '.packet', function()
+                {
+                    socket.emit('chat', {message: $(this).attr('title')});
+                    socket.emit('chat', {message: hex2a($(this).attr('title'))});
+
                 });
             });
         </script>
     </head>
     
     <body>
+        <div class='right count'>
+            <div>Packets sent: <span class='sent'>0</span></div>
+            <div>Packets recv: <span class='recv'>0</span></div>
+        </div>
+        
         <h1>Loading...</h1>
         <div class='users'></div>
         <hr />
 
+        <div class='right packets'>
+            <p>Sent:</p>
+            <div class='sent'></div>
+            
+            <p>Recieved:</p>
+            <div class='recv'></div>
+        </div>
+        
         <div class='chat'></div>
         
         <div class='footer'>

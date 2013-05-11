@@ -2,6 +2,9 @@ h1 {
     margin-bottom: 0px;
 }
 
+.right { float: right; }
+.left { float:left; }
+
 .chat {
     overfloy-x: hidden;
     overflow-y: scroll;
@@ -10,7 +13,7 @@ h1 {
 .footer {
     position: fixed;
     bottom: 0;
-    width: 100%;
+    width: 85%;
 }
 
 input {
