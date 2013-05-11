@@ -1,0 +1,18 @@
+h1 {
+    margin-bottom: 0px;
+}
+
+.chat {
+    overfloy-x: hidden;
+    overflow-y: scroll;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+input {
+    width: 100%;
+}
