@@ -1,11 +1,10 @@
 var net = require("net");
 var hexy = require("hexy");
 
-function startProxy(serviceSocket, serviceHost, servicePort, io)
+function startProxy(clientSocket, serviceSocket, serviceHost, servicePort, io)
 {
     // We don't need to proxy to other ports...
     var proxyPort = servicePort;
-
     net.createServer(function (proxySocket)
     {
         var connected = false;
@@ -22,6 +21,10 @@ function startProxy(serviceSocket, serviceHost, servicePort, io)
                 }
             }
         });
+        
+        // Set the proxy socket to the clientSocket so we can get at it later
+        clientSocket[serviceHost] = proxySocket;
+        clientSocket[serviceHost].write = proxySocket.write;
         
         proxySocket.on("error", function (e)
         {
@@ -72,7 +75,7 @@ function startProxy(serviceSocket, serviceHost, servicePort, io)
         serviceSocket.on("close", function(had_error)
         {
             proxySocket.end();
-        });
+        });        
     }).listen(proxyPort)
 }
 

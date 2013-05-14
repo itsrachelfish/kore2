@@ -8,7 +8,8 @@ var express     = require('express')
   , net         = require("net")
   , count       = 0
   , users       = []
-  , sockets     = {};
+  , serverSocket    = {}
+  , clientSocket    = {};
 
 
 function isset(variable)
@@ -86,9 +87,8 @@ io.sockets.on('connection', function(socket)
                 else
                 {
                     // Create a new socket for each host
-                    sockets[command[1]] = new net.Socket();
-                    
-                    proxy.startProxy(sockets[command[1]], command[1], command[2], io)
+                    serverSocket[command[1]] = new net.Socket();                    
+                    proxy.startProxy(clientSocket, serverSocket[command[1]], command[1], command[2], io)
                     message = "Proxy started..."
                 }
                 
@@ -106,11 +106,21 @@ io.sockets.on('connection', function(socket)
                 {
                     var packet = command.pop();
                     console.log(new Buffer(packet, 'hex')); 
-                    sockets[command[1]].write(new Buffer(packet, 'hex'));
+                    serverSocket[command[1]].write(new Buffer(packet, 'hex'));
                     message = "Packet sent!";
                 }
                 
                 io.sockets.emit('chat', {user: 'system', message: message});
+            }
+            else if(command[0] == 'emote')
+            {
+                if(command[1] == 'finger')
+                {
+                    //console.log(clientSocket);
+                    
+                    clientSocket['128.241.94.45'].write(new Buffer('13570115015c0901101000cde21170ba1e1170ba1e04000000', 'hex'));
+                    serverSocket['128.241.94.45'].write(new Buffer('13570111015905010c0c00cce21170ba1e04000000', 'hex'));
+                }
             }
         }
     });

@@ -59,6 +59,14 @@
                 {
                     sent.count++;
                     $('.count .sent').text(sent.count);
+
+                    // Emotes?
+                    if(header == '0111')
+                        console.log(packet);
+                    
+                    // Movement?
+                    if(header == '0154')
+                        console.log(packet);
                     
                     if(typeof sent.packets[header] === 'undefined')
                         sent.packets[header] = {data: packet.data, count: 1};
@@ -69,6 +77,13 @@
                 {
                     recv.count++;
                     $('.count .recv').text(recv.count);
+                 
+                    //if(packet.host == '128.241.94.45')
+                    //    console.log(packet);                        
+                    
+                    // Emotes?
+                    if(header == '0115')
+                        console.log(packet);
                     
                     if(typeof recv.packets[header] === 'undefined')
                         recv.packets[header] = {data: packet.data, count: 1};
