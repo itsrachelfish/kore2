@@ -1,6 +1,6 @@
 // This file handles all that socket.io-related stuff.
 
-var socket = io.connect('http://192.168.2.117:1024');
+var socket = io.connect(window.location.host);
 var sent = {count: 0, packets: {}};
 var recv = {count: 0, packets: {}};
 
@@ -38,7 +38,7 @@ socket.on('users', function(users)
 
 socket.on('chat', function(chat)
 {
-    $('.chat').append("<div><b>"+chat.user+"</b>: "+chat.message.fishformat()+"</div>");
+    $('.chat').append("<div><b>"+chat.user+"</b>: "+chat.message+"</div>");
     setTimeout(function() { $('.chat').scrollTop($('.chat')[0].scrollHeight) }, 100);
 });
 
