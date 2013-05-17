@@ -1,82 +1,133 @@
 var net = require("net");
 var hexy = require("hexy");
 
-function startProxy(clientSocket, serviceSocket, serviceHost, servicePort, io)
-{
-    // We don't need to proxy to other ports...
-    var proxyPort = servicePort;
-    net.createServer(function (proxySocket)
-    {
-        var connected = false;
-        var buffers = new Array();
-        serviceSocket.connect(parseInt(servicePort), serviceHost, function()
-        {
-            connected = true;
-            if (buffers.length > 0) 
-            {
-                for (i = 0; i < buffers.length; i++) 
-                {
-                    console.log(buffers[i]);
-                    serviceSocket.write(buffers[i]);
-                }
-            }
-        });
-        
-        // Set the proxy socket to the clientSocket so we can get at it later
-        clientSocket[serviceHost] = proxySocket;
-        clientSocket[serviceHost].write = proxySocket.write;
-        
-        proxySocket.on("error", function (e)
-        {
-            serviceSocket.end();
-        });
-        
-        serviceSocket.on("error", function (e)
-        {
-            console.log("Could not connect to service at host "
-            + serviceHost + ', port ' + servicePort);
-            proxySocket.end();
-        });
-        
-        proxySocket.on("data", function (data)
-        {
-            if(connected)
-            {
-                var prettyHex = hexy.hexy(data);
-                var plainHex = hexy.hexy(data, {numbering: 'none', format: 'none', annotate: 'none'});
+var Proxy = (function _Proxy() {
+	var self = Object.create({});
+	
+	var _isConnected = false;
+	
+	var _serviceSocket;
+	var _clientSocket;
+	var _name;
+	var _addr;
+	var _port;
+	var _io;
+	//var _outbound = new Array();
+	//var _inbound = new Array();
+	
+	self._init = function _init(name, addr, port, io) {
+		// Socket connecting out to RO2
+		_serviceSocket = new net.Socket(); 
+		_name = name;
+		_addr = addr;
+		_port = port;
+		_io = io;
+		return this
+	};
+	
+	self.flush = function() {
+		/*if(outbound.length > 0) {
+			for (i = 0; i < outbound.length; i++) 
+			{
+				console.log(outbound[i]);
+				this.sock.write(outbound[i]);
+			}
+		}*/
+	}
+	
+	// TODO: make private as to never need to send raw data
+	self.server = function(data) {
+		return _serviceSocket
+	}
+	
+	// TODO: make private as to never need to send raw data
+	self.client = function(data) {
+		return _clientSocket
+	}
+	
+	self.start = function() {
+		console.log("Listening on 0.0.0.0:" + _port);
+		net.createServer(function (stream)
+		{
+			_clientSocket = stream
+			
+			_serviceSocket.connect(_port, _addr, function()
+			{
+				console.log("Connected to " +_addr +":"+ _port);
+				_isConnected = true;
+				self.flush();
+			});
+			
+			_clientSocket.on("error", function (e)
+			{
+				console.error("Proxy socket error: %s", e)
+				_serviceSocket.end();
+			});
+		
+			_clientSocket.on("data", function (data)
+			{
+				if(_isConnected)
+				{
+					var prettyHex = hexy.hexy(data);
+					var plainHex = hexy.hexy(data, {numbering: 'none', format: 'none', annotate: 'none'});
 
-                console.log('Client sent: \n' + prettyHex);
-                io.sockets.emit('packet', {source: 'client', data: plainHex});
+					console.log('%s: Client sent: \n%s', _name, prettyHex);
+					_io.sockets.emit('packet', {source: 'client', data: plainHex});
 
-                serviceSocket.write(data);
-            } 
-            else
-            {
-                buffers[buffers.length] = data;
-            }
-        });
+					_serviceSocket.write(data);
+				} 
+				//else
+				//{
+				//	buffers[buffers.length] = data;
+				//}
+			});
 
-        serviceSocket.on("data", function(data)
-        {
-            var prettyHex = hexy.hexy(data);
-            var plainHex = hexy.hexy(data, {numbering: 'none', format: 'none', annotate: 'none'});
+			_clientSocket.on("close", function(had_error)
+			{
+				console.log('%s: Socket 0.0.0.0:%d closed', _name, _port);
+				_serviceSocket.end();
+			});
+			
+			// Socket events	
+			_serviceSocket.on("error", function (e)
+			{
+				console.error("%s: Could not connect to service at %s:%d", _name, _addr, _port);
+				_clientSocket.end();
+			});
+			
+			_serviceSocket.on("data", function(data)
+			{
+				var prettyHex = hexy.hexy(data);
+				var plainHex = hexy.hexy(data, {numbering: 'none', format: 'none', annotate: 'none'});
 
-            console.log('Server sent: \n' + prettyHex);
-            io.sockets.emit('packet', {source: 'server', host: serviceHost, port: servicePort, data: plainHex});
-            
-            proxySocket.write(data);
-        });
+				console.log('%s: Server sent: \n%s', _name, prettyHex);
+				_io.sockets.emit('packet', {source: 'server', host: _addr, port: _port, data: plainHex});
+				
+				_clientSocket.write(data);
+			});
+			
+			_serviceSocket.on("close", function(had_error)
+			{
+				console.log('%s: Socket %s:%d closed', _name, _addr, _port);
+				_clientSocket.end();
+			});    	
+		}).listen(_port);    
+	}
+	
+	/** Stop the proxy */
+	self.stop = function()
+	{
+		_serviceSocket.close();
+		_clientSocket.close();
+	}
 
-        proxySocket.on("close", function(had_error)
-        {
-            serviceSocket.end();
-        });
-       
-        serviceSocket.on("close", function(had_error)
-        {
-            proxySocket.end();
-        });        
-    }).listen(proxyPort)
+	return self;
+}());
+
+// factory function
+var createProxy = function _createProxy(name, addr, port, io) {
+	var o = Object.create(Proxy, {});
+	return o._init(name, addr, port, io);
 }
 
-exports.startProxy = startProxy;
+exports.createProxy = createProxy;

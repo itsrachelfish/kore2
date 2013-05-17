@@ -5,6 +5,7 @@ var express     = require('express')
   , check       = require('validator').check
   , sanitize    = require('validator').sanitize
   , proxy       = require('./proxy')
+  , engine 		= require('./engine')
   , net         = require("net")
   , count       = 0
   , users       = []
@@ -40,6 +41,7 @@ io.sockets.on('connection', function(socket)
     count++;
     io.sockets.emit('count', {count: count});
 
+	bot = engine.createEngine(io)
     socket.on('name', function(data)
     {
         var success = true;
@@ -76,52 +78,14 @@ io.sockets.on('connection', function(socket)
             // First let's tell everyone what we did
             io.sockets.emit('chat', {user: user.name, message: message});
             
-            if(command[0] == 'proxy')
-            {
-                if(command.length != 3)
-                {
-                    message = "Please use the following arguments:"
-                                + " service_host port"
-                                + " e.g. www.google.com 9001";
-                }
-                else
-                {
-                    // Create a new socket for each host
-                    serverSocket[command[1]] = new net.Socket();                    
-                    proxy.startProxy(clientSocket, serverSocket[command[1]], command[1], command[2], io)
-                    message = "Proxy started..."
-                }
-                
-                io.sockets.emit('chat', {user: 'system', message: message});
-            }
-            else if(command[0] == 'replay')
-            {
-                if(command.length != 3)
-                {
-                    message = "Please use the following arguments:"
-                                + " service_host data"
-                                + " e.g. www.google.com 135701011c";
-                }
-                else
-                {
-                    var packet = command.pop();
-                    console.log(new Buffer(packet, 'hex')); 
-                    serverSocket[command[1]].write(new Buffer(packet, 'hex'));
-                    message = "Packet sent!";
-                }
-                
-                io.sockets.emit('chat', {user: 'system', message: message});
-            }
-            else if(command[0] == 'emote')
-            {
-                if(command[1] == 'finger')
-                {
-                    //console.log(clientSocket);
-                    
-                    clientSocket['128.241.94.45'].write(new Buffer('13570115015c0901101000cde21170ba1e1170ba1e04000000', 'hex'));
-                    serverSocket['128.241.94.45'].write(new Buffer('13570111015905010c0c00cce21170ba1e04000000', 'hex'));
-                }
-            }
+			var action = bot[command[0]];
+			if(typeof(action) == "function")
+			{
+				console.log("Calling: " + command[0]);
+				action(command.slice(1));
+			} else {
+				io.sockets.emit('chat', {user: 'system', message: "Command " + command[0] + " not found"});
+			}
         }
     });
 
