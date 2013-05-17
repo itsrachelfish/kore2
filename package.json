@@ -1,0 +1,12 @@
+{
+	"name" : "kore2",
+	"version": "0.0.1",
+	"auhtor": "rachelfish",
+	"description": "A node.js based Ragnarok Online 2 bot",
+	"dependencies" : {
+		"express": "3.2.4",
+		"socket.io": "0.9.14",
+		"validator": "1.1.1",
+		"hexy": "0.2.5"
+	}
+}
