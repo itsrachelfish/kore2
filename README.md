@@ -25,9 +25,13 @@ You'll likely want to run wireshark or another packet sniffing program on window
     iptables -t nat -A POSTROUTING -s (LAN IP Running Ragnarok) -d (LAN IP Running Kore) -j SNAT --to-source (Router IP)
 
 Alternatively, on a Windows host running the game client run this AFTER the game has luanched:
-	route add 128.241.94.0 mask 255.255.255.0 (LAN IP Running Kore)
+
+    route add 128.241.94.0 mask 255.255.255.0 (LAN IP Running Kore)
+
 remove to re-launch:
-	route delete 128.241.94.0 mask 255.255.255.0
+
+    route delete 128.241.94.0 mask 255.255.255.0
+
 Proxy
 -----
 
